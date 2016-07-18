@@ -1,0 +1,75 @@
+version: '2'
+services:
+    nginx-proxy:
+        image: jwilder/nginx-proxy
+        container_name: nginx-proxy
+        ports:
+           - "80:80"
+        volumes:
+           - /var/run/docker.sock:/tmp/docker.sock:ro
+
+    couchpotato:
+        image: linuxserver/couchpotato
+        container_name: couchpotato
+        # network_mode: "host"
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/.config/couchpotato:/config
+            - $HOME/Downloads/torrents/completed/Movies:/downloads
+            - /media/My Passport/peliculas:/movies
+        ports:
+            - 5050:5050
+        links:
+            - plex
+            - utorrent
+        restart: always
+        environment:
+            - VIRTUAL_HOST=couchpotato.htpc
+            - PGID=1000
+            - PUID=1000
+
+    plex:
+        image: linuxserver/plex
+        container_name: plex
+        # network_mode: "host"
+        ports:
+            - 32400:32400
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/.config/plexmediaserver:/config
+            - /media/My Passport/peliculas:/data/movies
+        restart: always
+        environment:
+            - VIRTUAL_PORT=32400
+            - VIRTUAL_HOST=plex.htpc
+            - VERSION=latest
+            - PGID=1000
+            - PUID=1000
+
+    utorrent:
+        image: ekho/utorrent
+        container_name: utorrent
+        # network_mode: "host"
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/Downloads:/data
+            - $HOME/.config/utorrent:/utorrent
+        ports:
+            - 8080:8080
+            - 6881:6881
+        restart: always
+        environment:
+            - VIRTUAL_PORT=8080
+            - VIRTUAL_HOST=utorrent.htpc
+
+    hamachi:
+        image: gfjardim/hamachi
+        container_name: hamachi
+        network_mode: "host"
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/.config/hamachi:/config
+        restart: always
+        environment:
+            - ACCOUNT="myemail@gmail.com"
+        privileged: true
