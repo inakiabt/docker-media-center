@@ -8,6 +8,19 @@ services:
         volumes:
            - /var/run/docker.sock:/tmp/docker.sock:ro
 
+    dashboard:
+        image: chimpchimp/manage-this-node
+        container_name: dashboard
+        ports:
+            - 3000:3000
+        volumes:
+            - $HOME/.config/dashboard:/config
+        restart: always
+        environment:
+            - VIRTUAL_HOST=dashboard.htpc
+            - PGID=1000
+            - PUID=1000
+
     couchpotato:
         image: linuxserver/couchpotato
         container_name: couchpotato
