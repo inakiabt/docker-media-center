@@ -8,6 +8,23 @@ services:
         volumes:
            - /var/run/docker.sock:/tmp/docker.sock:ro
 
+    emby:
+        image: emby/embyserver
+        container_name: emby
+        # net: host
+        ports:
+            - 8096:8096
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/.config/embyserver:/config
+            - /media/My Passport/peliculas:/media
+        environment:
+            - VIRTUAL_PORT=8096
+            - VIRTUAL_HOST=emby.htpc
+            - AUTO_UPDATES_ON=true
+            - APP_UID=1000
+            - APP_GID=1000
+
     mrpotato:
         image: rolfkoenders/potato
         container_name: mrpotato
