@@ -8,6 +8,14 @@ services:
         volumes:
            - /var/run/docker.sock:/tmp/docker.sock:ro
 
+    mrpotato:
+        image: rolfkoenders/potato
+        container_name: mrpotato
+        restart: always
+        links:
+            - couchpotato
+        env_file: $HOME/.config/mrpotato/env
+
     dashboard:
         image: chimpchimp/manage-this-node
         container_name: dashboard
