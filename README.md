@@ -21,6 +21,20 @@ This container act as a reverse proxy of the above containers
 ### LogmeIn Hamachi
 *Notes: start container, enter with `docker exec -it hamachi bash` and join your network manually with `hamachi join <network id> <password>`*
 
+### Emby
+Running on: http://emby.htpc/
+
+### Mr. Potato Slack bot
+An environment variables file is required on: `$HOME/.config/mrpotato/env` like
+```bash
+CB_SLACK_KEY=YOUR_SLACK_KEY
+CB_SLACK_NAME=mrpotato
+CB_HOST=http://couchpotato
+CB_PORT=5050
+# CB_BASE_URL=/
+CB_COUCH_KEY=YOUR_COUCHPOTATO_KEY
+```
+
 ## Local configuration (macOS)
 ### dsnmasq
 **Install [brew services](https://github.com/Homebrew/homebrew-services)**
