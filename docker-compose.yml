@@ -87,7 +87,7 @@ services:
     utorrent:
         image: ekho/utorrent
         container_name: utorrent
-        # network_mode: "host"
+        network_mode: "host"
         volumes:
             - /etc/localtime:/etc/localtime:ro
             - $HOME/Downloads:/data
