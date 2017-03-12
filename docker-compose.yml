@@ -69,7 +69,7 @@ services:
     plex:
         image: linuxserver/plex
         container_name: plex
-        # network_mode: "host"
+        network_mode: "host"
         ports:
             - 32400:32400
         volumes:
@@ -87,7 +87,7 @@ services:
     utorrent:
         image: ekho/utorrent
         container_name: utorrent
-        network_mode: "host"
+        # network_mode: "host"
         volumes:
             - /etc/localtime:/etc/localtime:ro
             - $HOME/Downloads:/data
