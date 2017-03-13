@@ -35,6 +35,16 @@ CB_PORT=5050
 CB_COUCH_KEY=YOUR_COUCHPOTATO_KEY
 ```
 
+### uTorrent Slack bot
+An environment variables file is required on: `$HOME/.config/ubot/env` like
+```bash
+UBOT_TOKEN=YOUR_TOKEN
+UTORRENT_PASSWORD=YOUR_UTORRENT_PASSWORD
+UTORRENT_USERNAME=YOUR_UTORRENT_USERNAME
+UTORRENT_PORT=YOUR_UTORRENT_PORT
+UTORRENT_HOST=YOUR_UTORRENT_HOST
+```
+
 ## Local configuration (macOS)
 ### dsnmasq
 **Install [brew services](https://github.com/Homebrew/homebrew-services)**
