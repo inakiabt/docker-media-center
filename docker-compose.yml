@@ -25,6 +25,14 @@ services:
             - APP_UID=1000
             - APP_GID=1000
 
+    ubot:
+        image: inakiabt/utorrent-bot
+        container_name: ubot
+        restart: always
+        links:
+            - utorrent
+        env_file: $HOME/.config/ubot/env
+
     mrpotato:
         image: rolfkoenders/potato
         container_name: mrpotato
