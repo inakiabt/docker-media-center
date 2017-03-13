@@ -26,6 +26,7 @@ Running on: http://emby.htpc/
 
 ### Mr. Potato Slack bot
 https://github.com/RolfKoenders/potato
+
 An environment variables file is required on: `$HOME/.config/mrpotato/env` like
 ```bash
 CB_SLACK_KEY=YOUR_SLACK_KEY
@@ -38,6 +39,7 @@ CB_COUCH_KEY=YOUR_COUCHPOTATO_KEY
 
 ### uTorrent Slack bot
 https://github.com/inakiabt/utorrent-bot
+
 An environment variables file is required on: `$HOME/.config/ubot/env` like
 ```bash
 UBOT_TOKEN=YOUR_TOKEN
