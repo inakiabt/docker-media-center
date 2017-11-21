@@ -1,12 +1,55 @@
 version: '2'
 services:
+    jackett:
+        image: linuxserver/jackett:90
+        container_name: jackett
+        restart: always
+        ports:
+            - 9117:9117
+        environment:
+            - VIRTUAL_HOST=jackett.htpc
+            - PGID=1000
+            - PUID=1000
+        volumes:
+            - $HOME/.config/jackett:/config
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/Downloads/torrents/completed/Movies:/downloads
+
+    dashboard:
+        image: chimpchimp/manage-this-node
+        container_name: dashboard
+        restart: always
+        network_mode: "bridge"
+        ports:
+            - 3000:3000
+        environment:
+            - VIRTUAL_HOST=dashboard.htpc
+            - PGID=1000
+            - PUID=1000
+        volumes:
+            - $HOME/.config/dashboard:/config
+            - /etc/localtime:/etc/localtime:ro
+            - $HOME/Downloads/torrents/completed/Movies:/downloads
+
+    portainer:
+        image: portainer/portainer
+        container_name: portainer
+        restart: always
+        network_mode: "bridge"
+        ports:
+            - "9000:9000"
+        volumes:
+            - /home/ina/.config/portainer:/data:rw
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+            - /etc/localtime:/etc/localtime:ro
+
     nginx-proxy:
         image: jwilder/nginx-proxy
         container_name: nginx-proxy
         ports:
-           - "80:80"
+            - "80:80"
         volumes:
-           - /var/run/docker.sock:/tmp/docker.sock:ro
+            - /var/run/docker.sock:/tmp/docker.sock:ro
 
     emby:
         image: emby/embyserver
@@ -66,6 +109,7 @@ services:
         ports:
             - 5050:5050
         links:
+            - jackett
             - plex
             - utorrent
         restart: always
