@@ -63,7 +63,10 @@ sudo brew services start dnsmasq
 **Configure and restart**
 ```bash
 echo "nameserver 127.0.0.1" > /etc/resolver/htpc
-echo "address=/.htpc/192.168.1.10\n" >> /path/to/dnsmasq.conf
+echo "domain htpc" >> /etc/resolver/htpc
+echo "search_order 1" >> /etc/resolver/htpc
+
+echo "address=/.htpc/127.0.0.1\n" >> /path/to/dnsmasq.conf
 sudo brew services restart dnsmasq
 ```
 
