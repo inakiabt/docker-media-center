@@ -96,6 +96,9 @@ echo "address=/.htpc/10.254.254.254\n" >> /path/to/dnsmasq.conf
 sudo brew services restart dnsmasq
 ```
 
+**In case it does not work for containers**
+See https://stackoverflow.com/questions/53181154/docker-container-internal-vs-external-dns-resolution-issue-using-traefik#comment101968337_53503399
+
 ## Thanks to
 
 - [linuxserver.io](https://www.linuxserver.io/) for those awesome [dockerfiles](http://tools.linuxserver.io/dockers)
