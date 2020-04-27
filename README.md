@@ -62,6 +62,7 @@ brew install dnsmasq
 sudo brew services start dnsmasq
 ```
 **Setup 127.0.0.1 alias**
+```bash
 sudo ifconfig lo0 alias 10.254.254.254
 cat << EOF | sudo tee -a /Library/LaunchDaemons/com.docker-media-center.loopback1.plist
 <?xml version="1.0" encoding="UTF-8"?>
@@ -83,6 +84,7 @@ cat << EOF | sudo tee -a /Library/LaunchDaemons/com.docker-media-center.loopback
 </plist>
 EOF
 sudo launchctl load /Library/LaunchDaemons/com.docker-media-center.loopback1.plist
+```
 
 **Configure and restart**
 ```bash
