@@ -49,7 +49,8 @@ UTORRENT_PORT=YOUR_UTORRENT_PORT
 UTORRENT_HOST=YOUR_UTORRENT_HOST
 ```
 
-## Local configuration (macOS)
+## DNS (macOS)
+Taken from: https://medium.com/@williamhayes/local-dev-on-docker-fun-with-dns-85ca7d701f0a
 ### dsnmasq
 **Install [brew services](https://github.com/Homebrew/homebrew-services)**
 ```bash
@@ -60,13 +61,36 @@ brew tap homebrew/services
 brew install dnsmasq
 sudo brew services start dnsmasq
 ```
+**Setup 127.0.0.1 alias**
+sudo ifconfig lo0 alias 10.254.254.254
+cat << EOF | sudo tee -a /Library/LaunchDaemons/com.docker-media-center.loopback1.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.docker-media-center.loopback1</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/sbin/ifconfig</string>
+        <string>lo0</string>
+        <string>alias</string>
+        <string>10.254.254.254</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+  </dict>
+</plist>
+EOF
+sudo launchctl load /Library/LaunchDaemons/com.docker-media-center.loopback1.plist
+
 **Configure and restart**
 ```bash
-echo "nameserver 127.0.0.1" > /etc/resolver/htpc
+echo "nameserver 10.254.254.254" > /etc/resolver/htpc
 echo "domain htpc" >> /etc/resolver/htpc
 echo "search_order 1" >> /etc/resolver/htpc
 
-echo "address=/.htpc/127.0.0.1\n" >> /path/to/dnsmasq.conf
+echo "address=/.htpc/10.254.254.254\n" >> /path/to/dnsmasq.conf
 sudo brew services restart dnsmasq
 ```
 
