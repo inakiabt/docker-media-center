@@ -1,165 +1,590 @@
 version: '2'
 services:
+    traefik: 
+        image: traefik:v1.7-alpine
+        container_name: traefik
+        restart: unless-stopped
+        networks:
+            - proxy
+        command: --web --docker --docker.domain=${TRAEFIK_DOMAIN}  --docker.domain=${TRAEFIK_DOMAIN}
+        ports: 
+            - 9080:8080 
+            - 80:80
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - $LOCAL_CONFIG/traefik:/traefik.toml
+        labels:
+            - "traefik.backend=traefik"
+            - "traefik.frontend.rule=Host:traefik.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8080" 
+            - "traefik.enable=true" 
+
     jackett:
-        image: linuxserver/jackett:90
+        image: linuxserver/jackett:v0.16.770-ls6
         container_name: jackett
-        restart: always
+        restart: unless-stopped
+        networks:
+            - proxy
         ports:
             - 9117:9117
         environment:
             - VIRTUAL_HOST=jackett.htpc
+            - TZ=$TIMEZONE
+            - PGID=1000
+            - PUID=1000
+        depends_on:
+            - traefik
+        volumes:
+            - $LOCAL_CONFIG/jackett:/config
+            # - /etc/localtime:/etc/localtime:ro
+        labels:
+            - "traefik.backend=jackett"
+            - "traefik.frontend.rule=Host:jackett.${TRAEFIK_DOMAIN}"
+            - "traefik.port=9117" 
+            - "traefik.enable=true" 
+
+    calibre:
+        image: linuxserver/calibre
+        container_name: calibre
+        networks:
+            - proxy
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=$TIMEZONE
+            - GUAC_USER=$CALIBRE_GUAC_USER
+            - GUAC_PASS=$CALIBRE_GUAC_PASSWORD
+            - UMASK_SET=022
+        volumes:
+            - $LOCAL_CONFIG/calibre:/config
+        ports:
+            - 8080
+            - 8081
+        depends_on:
+            - traefik
+        restart: unless-stopped
+        labels:
+            - "traefik.backend=calibre"
+            - "traefik.frontend.rule=Host:calibre.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8080" 
+            - "traefik.enable=true" 
+
+    calibre-web:
+        image: linuxserver/calibre-web
+        container_name: calibre-web
+        networks:
+            - proxy
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=$TIMEZONE
+            - DOCKER_MODS=linuxserver/calibre-web:calibre
+        volumes:
+            - $LOCAL_CONFIG/calibre-web:/config
+            - $STORAGE_FOLDER/books:/books
+        ports:
+            - 8083
+        depends_on:
+            - traefik
+        restart: unless-stopped
+        labels:
+            - "traefik.backend=calibre-web"
+            - "traefik.frontend.rule=Host:calibre-web.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8083" 
+            - "traefik.enable=true" 
+
+    # taisun:
+    #     image: linuxserver/taisun:v0.5.1-ls33
+    #     container_name: taisun
+    #     restart: unless-stopped
+    #     networks:
+    #         - proxy
+    #     ports:
+    #         - 3000:3000
+    #     environment:
+    #         - VIRTUAL_HOST=taisun.htpc
+    #         - TZ=$TIMEZONE
+    #         - PGID=1000
+    #         - PUID=1000
+    #     volumes:
+    #         - $LOCAL_CONFIG/taisun:/config
+    #         - /var/run/docker.sock:/var/run/docker.sock:ro
+    #         # - /etc/localtime:/etc/localtime:ro
+    #     labels:
+    #         - "traefik.backend=taisun"
+    #         - "traefik.frontend.rule=Host:taisun.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=3000" 
+    #         - "traefik.enable=true" 
+
+    heimdall:
+        image: linuxserver/heimdall:3a9bdd2c-ls51
+        container_name: heimdall
+        networks:
+            - proxy
+        ports:
+            - 80
+            - 443
+        restart: unless-stopped
+        environment:
+            - VIRTUAL_HOST=home.htpc
+            - TZ=$TIMEZONE
             - PGID=1000
             - PUID=1000
         volumes:
-            - $HOME/.config/jackett:/config
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/Downloads/torrents/completed/Movies:/downloads
+            - $LOCAL_CONFIG/heimdall:/config
+            # - /etc/localtime:/etc/localtime:ro
+        depends_on:
+            - traefik
+        labels:
+            - "traefik.backend=heimdall"
+            - "traefik.frontend.rule=Host:home.${TRAEFIK_DOMAIN}"
+            - "traefik.port=80" 
+            - "traefik.enable=true" 
 
-    dashboard:
-        image: chimpchimp/manage-this-node
-        container_name: dashboard
-        restart: always
-        network_mode: "bridge"
+    bazarr:
+        image: linuxserver/bazarr:v0.8.4.4-ls85
+        container_name: bazarr
+        restart: unless-stopped
         ports:
-            - 3000:3000
+            - 6767
+        networks:
+            - proxy
         environment:
-            - VIRTUAL_HOST=dashboard.htpc
+            - VIRTUAL_HOST=bazarr.htpc
+            - TZ=$TIMEZONE
             - PGID=1000
             - PUID=1000
+            - UMASK_SET=022
+        depends_on:
+            - traefik
+            - sonarr
+            - radarr
         volumes:
-            - $HOME/.config/dashboard:/config
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/Downloads/torrents/completed/Movies:/downloads
+            - $LOCAL_CONFIG/bazarr:/config
+            # - /etc/localtime:/etc/localtime:ro
+            - $STORAGE_FOLDER/movies:/movies
+            - $STORAGE_FOLDER/tvseries:/tvseries
+        labels:
+            - "traefik.backend=bazarr"
+            - "traefik.frontend.rule=Host:bazarr.${TRAEFIK_DOMAIN}"
+            - "traefik.port=6767" 
+            - "traefik.enable=true" 
 
-    portainer:
-        image: portainer/portainer
-        container_name: portainer
-        restart: always
-        network_mode: "bridge"
+    sonarr:
+        image: linuxserver/sonarr:3.0.3.896-ls29
+        container_name: sonarr
+        restart: unless-stopped
         ports:
-            - "9000:9000"
-        volumes:
-            - /home/ina/.config/portainer:/data:rw
-            - /var/run/docker.sock:/tmp/docker.sock:ro
-            - /etc/localtime:/etc/localtime:ro
-
-    nginx-proxy:
-        image: jwilder/nginx-proxy
-        container_name: nginx-proxy
-        ports:
-            - "80:80"
-        volumes:
-            - /var/run/docker.sock:/tmp/docker.sock:ro
-
-    emby:
-        image: emby/embyserver
-        container_name: emby
-        # net: host
-        ports:
-            - 8096:8096
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/.config/embyserver:/config
-            - /media/My Passport/peliculas:/media
+            - 8989
+        networks:
+            - proxy
+        depends_on:
+            - traefik
+            - utorrent
+            - jackett
         environment:
-            - VIRTUAL_PORT=8096
-            - VIRTUAL_HOST=emby.htpc
-            - AUTO_UPDATES_ON=true
-            - APP_UID=1000
-            - APP_GID=1000
+            - VIRTUAL_HOST=sonarr.htpc
+            - TZ=$TIMEZONE
+            - PGID=1000
+            - PUID=1000
+            - UMASK_SET=022
+        volumes:
+            - $LOCAL_CONFIG/sonarr:/config
+            # - /etc/localtime:/etc/localtime:ro
+            - $DOWNLOAD_FOLDER/tvseries:/downloads
+            - $STORAGE_FOLDER/tvseries:/tvseries
+        labels:
+            - "traefik.backend=sonarr"
+            - "traefik.frontend.rule=Host:sonarr.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8989" 
+            - "traefik.enable=true" 
+
+    radarr:
+        image: linuxserver/radarr:3.0.0.3088-ls12
+        container_name: radarr
+        restart: unless-stopped
+        ports:
+            - 7878
+        networks:
+            - proxy
+        depends_on:
+            - traefik
+            - utorrent
+            - jackett
+        environment:
+            - VIRTUAL_HOST=radarr.htpc
+            - TZ=$TIMEZONE
+            - PGID=1000
+            - PUID=1000
+            - UMASK_SET=022
+        volumes:
+            - $LOCAL_CONFIG/radarr:/config
+            # - /etc/localtime:/etc/localtime:ro
+            - $STORAGE_FOLDER/movies:/movies
+            - $STORAGE_FOLDER/toprocess:/toprocess
+            - $DOWNLOAD_FOLDER/movies:/downloads
+        labels:
+            - "traefik.backend=radarr"
+            - "traefik.frontend.rule=Host:radarr.${TRAEFIK_DOMAIN}"
+            - "traefik.port=7878" 
+            - "traefik.enable=true" 
+
+    tdarr:
+        image: haveagitgat/tdarr_aio:1.1092
+        container_name: tdarr
+        networks:
+            - proxy
+        ports:
+            - 8265
+        environment:
+            - TZ=$TIMEZONE
+            - PGID=1000
+            - PUID=1000
+        depends_on:
+            - traefik
+        volumes:
+            - $LOCAL_CONFIG/tdarr/config:/home/Tdarr/Documents/Tdarr
+            - $LOCAL_CONFIG/tdarr/db:/var/lib/mongodb
+            - $STORAGE_FOLDER:/home/Tdarr/media
+            - $STORAGE_FOLDER/temp/tdarr:/home/Tdarr/cache
+          # - /etc/localtime:/etc/localtime:ro
+        labels:
+            - "traefik.backend=tdarr"
+            - "traefik.frontend.rule=Host:tdarr.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8265" 
+            - "traefik.enable=true" 
+
+    # portainer:
+    #     image: portainer/portainer:1.23.2
+    #     container_name: portainer
+    #     restart: unless-stopped
+    #     network_mode: "bridge"
+    #     ports:
+    #         - "9000"
+    #     volumes:
+    #         - $LOCAL_CONFIG/portainer:/data:rw
+    #         - /var/run/docker.sock:/tmp/docker.sock:ro
+    #         # - /etc/localtime:/etc/localtime:ro
+    #     labels:
+    #         - "traefik.backend=portainer"
+    #         - "traefik.frontend.rule=Host:portainer.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=9000" 
+    #         - "traefik.enable=true" 
+
+    # emby:
+    #     image: emby/embyserver
+    #     container_name: emby
+    #     # net: host
+    #     ports:
+    #         - 8096:8096
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/embyserver:/config
+    #         - /media/My Passport/peliculas:/media
+    #     environment:
+    #         - VIRTUAL_PORT=8096
+    #         - VIRTUAL_HOST=emby.htpc
+    #         - AUTO_UPDATES_ON=true
+    #         - APP_UID=1000
+    #         - APP_GID=1000
+    #     labels:
+    #         - "traefik.backend=emby"
+    #         - "traefik.frontend.rule=Host:dashboard.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=3000" 
+    #         - "traefik.enable=true" 
 
     ubot:
         image: inakiabt/utorrent-bot
         container_name: ubot
-        restart: always
-        links:
+        networks:
+            - proxy
+        restart: unless-stopped
+        depends_on:
             - utorrent
-        env_file: $HOME/.config/ubot/env
-
-    mrpotato:
-        image: rolfkoenders/potato
-        container_name: mrpotato
-        restart: always
-        links:
-            - couchpotato
-        env_file: $HOME/.config/mrpotato/env
-
-    dashboard:
-        image: chimpchimp/manage-this-node
-        container_name: dashboard
-        ports:
-            - 3000:3000
-        volumes:
-            - $HOME/.config/dashboard:/config
-        restart: always
         environment:
-            - VIRTUAL_HOST=dashboard.htpc
-            - PGID=1000
-            - PUID=1000
+            - UTORRENT_HOST=utorrent.htpc
+            - UTORRENT_PORT=80
+            - UTORRENT_USERNAME=$UTORRENT_USERNAME
+            - UTORRENT_PASSWORD=$UTORRENT_PASSWORD
+            - UBOT_TOKEN=$UBOT_TOKEN
+        labels:
+            - "traefik.enable=false" 
 
-    couchpotato:
-        image: linuxserver/couchpotato
-        container_name: couchpotato
-        # network_mode: "host"
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/.config/couchpotato:/config
-            - $HOME/Downloads/torrents/completed/Movies:/downloads
-            - /media/My Passport/peliculas:/movies
-        ports:
-            - 5050:5050
-        links:
-            - jackett
-            - plex
-            - utorrent
-        restart: always
-        environment:
-            - VIRTUAL_HOST=couchpotato.htpc
-            - PGID=1000
-            - PUID=1000
+    # mrpotato:
+    #     image: rolfkoenders/potato
+    #     container_name: mrpotato
+    #     restart: unless-stopped
+    #     depends_on:
+    #         - couchpotato
+    #     env_file: $LOCAL_CONFIG/mrpotato/env
+
+    # htpcmanager:
+    #     image: linuxserver/htpcmanager:3f78517f-ls33
+    #     container_name: htpcmanager
+    #     networks:
+    #         - proxy
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/htpcmanager:/config
+    #     ports:
+    #         - 8085
+    #     restart: unless-stopped
+    #     environment:
+    #         - VIRTUAL_HOST=htpcmanager.htpc
+    #         - TZ=$TIMEZONE
+    #         - PGID=1000
+    #         - PUID=1000
+    #     labels:
+    #         - "traefik.backend=htpcmanager"
+    #         - "traefik.frontend.rule=Host:htpcmanager.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=8085" 
+    #         - "traefik.enable=true" 
+
+    # couchpotato:
+    #     image: linuxserver/couchpotato:7260c12f-ls33
+    #     container_name: couchpotato
+    #     networks:
+    #         - proxy
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/couchpotato:/config
+    #         - $DOWNLOAD_FOLDER/movies:/downloads
+    #         - $STORAGE_FOLDER/movies:/movies
+    #     ports:
+    #         - 5050
+    #     depends_on:
+    #         - jackett
+    #         - plex
+    #         - utorrent
+    #     restart: unless-stopped
+    #     environment:
+    #         - VIRTUAL_HOST=couchpotato.htpc
+    #         - TZ=$TIMEZONE
+    #         - PGID=1000
+    #         - PUID=1000
+    #         - UMASK_SET=022
+    #     labels:
+    #         - "traefik.backend=couchpotato"
+    #         - "traefik.frontend.rule=Host:couchpotato.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=5050" 
+    #         - "traefik.enable=true" 
+
+    # medusa:
+    #     image: linuxserver/medusa:v0.3.15-ls41
+    #     container_name: medusa
+    #     # network_mode: "host"
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/medusa:/config
+    #         - $DOWNLOAD_FOLDER/tvseries:/downloads
+    #         - $STORAGE_FOLDER/tvseries:/tvseries
+    #     ports:
+    #         - 8081
+    #     depends_on:
+    #         - jackett
+    #         # - plex
+    #         - utorrent
+    #     restart: unless-stopped
+    #     environment:
+    #         - VIRTUAL_HOST=medusa.htpc
+    #         - TZ=$TIMEZONE
+    #         - PGID=1000
+    #         - PUID=1000
+    #     labels:
+    #         - "traefik.backend=medusa"
+    #         - "traefik.frontend.rule=Host:medusa.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=8081" 
+    #         - "traefik.enable=true" 
+
+    # organizr:
+    #     image: linuxserver/organizr:f6d984d2-ls41
+    #     container_name: organizr
+    #     # network_mode: "host"
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/organizr:/config
+    #     ports:
+    #         - 80
+    #     depends_on:
+    #         - jackett
+    #         - plex
+    #         - utorrent
+    #     restart: unless-stopped
+    #     environment:
+    #         - VIRTUAL_HOST=organizr.htpc
+    #         - TZ=$TIMEZONE
+    #         - PGID=1000
+    #         - PUID=1000
+    #     labels:
+    #         - "traefik.backend=organizr"
+    #         - "traefik.frontend.rule=Host:organizr.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=80" 
+    #         - "traefik.enable=true" 
 
     plex:
-        image: linuxserver/plex
+        image: linuxserver/plex:1.19.4.2935-79e214ead-ls105
         container_name: plex
-        network_mode: "host"
         ports:
             - 32400:32400
+            - 1900:1900/udp
+            - 3005:3005
+            - 5354:5353/udp
+            - 8324:8324
+            - 32410:32410/udp
+            - 32412:32412/udp
+            - 32413:32413/udp
+            - 32414:32414/udp
+            - 32469:32469
+            - 35729:35729
         volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/.config/plexmediaserver:/config
-            - /media/My Passport/peliculas:/data/movies
-        restart: always
+            # - /etc/localtime:/etc/localtime:ro
+            - $LOCAL_CONFIG/plexmediaserver:/config
+            - $STORAGE_FOLDER/temp/plex/transcodes:/data/transcodes
+            - $STORAGE_FOLDER/movies:/data/movies
+            - $STORAGE_FOLDER/tvseries:/data/tvseries
+        restart: unless-stopped
         environment:
             - VIRTUAL_PORT=32400
             - VIRTUAL_HOST=plex.htpc
             - VERSION=latest
+            - TZ=$TIMEZONE
             - PGID=1000
             - PUID=1000
+            - UMASK_SET=022
+            - VERSION=docker
+            # - PLEX_CLAIM=claim-v9JmHsfg4fxsZJwxicBt
+        labels:
+            - "traefik.backend=plex"
+            - "traefik.frontend.rule=Host:plex.${TRAEFIK_DOMAIN}"
+            - "traefik.port=32400" 
+            - "traefik.enable=true"
+            - "traefik.network=docker-media-center_default"
 
     utorrent:
-        image: ekho/utorrent
+        image: ekho/utorrent:v2.0.3
         container_name: utorrent
-        # network_mode: "host"
+        networks:
+            - proxy
         volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/Downloads:/data
-            - $HOME/.config/utorrent:/utorrent
+            # - /etc/localtime:/etc/localtime:ro
+            - $DOWNLOAD_FOLDER:/data
+            - $LOCAL_CONFIG/utorrent:/utorrent/settings
         ports:
-            - 8080:8080
+            - 8080
             - 6881:6881
-        restart: always
+            - 6881:6881/udp
+        depends_on:
+            - traefik
+        restart: unless-stopped
         environment:
+            - dir_autoload_delete=true
+            - dir_download=/downloaded
             - VIRTUAL_PORT=8080
             - VIRTUAL_HOST=utorrent.htpc
+            - GID=1000
+            - UID=1000
+            # - webui=ng
+        labels:
+            - "traefik.backend=utorrent"
+            - "traefik.frontend.rule=Host:utorrent.${TRAEFIK_DOMAIN}"
+            - "traefik.port=8080" 
+            - "traefik.enable=true" 
 
-    hamachi:
-        image: gfjardim/hamachi
-        container_name: hamachi
-        network_mode: "host"
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-            - $HOME/.config/hamachi:/config
-        restart: always
-        environment:
-            - ACCOUNT="myemail@gmail.com"
-        privileged: true
+    # deluge:
+    #     image: linuxserver/deluge:2.0.3-2201906121747ubuntu18.04.1-ls57
+    #     container_name: deluge
+    #     networks:
+    #         - proxy
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $DOWNLOAD_FOLDER:/downloads
+    #         - $LOCAL_CONFIG/deluge:/config
+    #     ports:
+    #         - 8112
+    #     restart: unless-stopped
+    #     environment:
+    #         - VIRTUAL_PORT=8112
+    #         - VIRTUAL_HOST=deluge.htpc
+    #         - UMASK_SET=022
+    #         - DELUGE_LOGLEVEL=error #optional
+    #     labels:
+    #         - "traefik.backend=deluge"
+    #         - "traefik.frontend.rule=Host:deluge.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=8112" 
+    #         - "traefik.enable=true" 
+
+    # hamachi:
+    #     image: gfjardim/hamachi
+    #     container_name: hamachi
+    #     network_mode: "host"
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/hamachi:/config
+    #     restart: unless-stopped
+    #     environment:
+    #         - ACCOUNT="myemail@gmail.com"
+    #     privileged: true
+
+    # owntracks-mqtt:
+    #     image: eclipse-mosquitto:1.6.9
+    #     container_name: owntracks-mqtt
+    #     # networks:
+    #     #     - proxy
+    #     ports:
+    #         - 1883
+    #         - 8883
+    #     volumes:
+    #         - $LOCAL_CONFIG/owntracks/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    #         # - $DOWNLOAD_FOLDER/owntracks/mosquitto/log:/mosquitto/log
+    #         # - $DOWNLOAD_FOLDER/owntracks/mosquitto/data:/mosquitto/data
+    #     restart: unless-stopped
+    #     labels:
+    #         - "traefik.enable=false" 
+
+    # owntracks-recorder:
+    #     image: owntracks/recorder:0.8.6-12
+    #     container_name: owntracks-recorder
+    #     # networks:
+    #     #     - proxy
+    #     ports:
+    #         - 8083:8083
+    #     volumes:
+    #         # - /etc/localtime:/etc/localtime:ro
+    #         - $LOCAL_CONFIG/owntracks/recorder:/config
+    #         # - $DOWNLOAD_FOLDER/owntracks/recorder:/store
+    #     restart: unless-stopped
+    #     depends_on:
+    #         - owntracks-mqtt
+    #     environment:
+    #         - OTR_HOST=owntracks-mqtt
+    #         - OTR_PORT=1883
+    #     labels:
+    #         - "traefik.backend=owntracks-recorder"
+    #         - "traefik.frontend.rule=Host:owntracks-recorder.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=8083" 
+    #         - "traefik.enable=true" 
+
+    # owntracks-ui:
+    #     image: owntracks/frontend:v2.2.0
+    #     container_name: owntracks-ui
+    #     # networks:
+    #     #     - proxy
+    #     ports:
+    #         - 8088:80
+    #     volumes:
+    #         - $LOCAL_CONFIG/owntracks/ui/config.js:/usr/share/nginx/html/config/config.js
+    #     depends_on:
+    #         - owntracks-recorder
+    #     environment:
+    #         - SERVER_HOST=owntracks-recorder
+    #         - SERVER_PORT=8083
+    #     restart: unless-stopped
+    #     labels:
+    #         - "traefik.backend=owntracks-ui"
+    #         - "traefik.frontend.rule=Host:owntracks.${TRAEFIK_DOMAIN}"
+    #         - "traefik.port=80" 
+    #         - "traefik.enable=true" 
+
+networks:
+    proxy:
+        driver: bridge
